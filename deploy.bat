@@ -34,7 +34,7 @@ if %ERRORLEVEL% NEQ 0 (
     echo.
     
     choice /C YN /M "Continue with installation?"
-    if !ERRORLEVEL! EQU 2 (
+    if %ERRORLEVEL% EQU 2 (
         echo %INFO%[INFO]%RESET% Installation cancelled.
         pause
         exit /b 0
@@ -54,7 +54,7 @@ if !MEMORY_GB! LSS 8 (
     echo.
     
     choice /C YN /M "Continue with installation?"
-    if !ERRORLEVEL! EQU 2 (
+    if %ERRORLEVEL% EQU 2 (
         echo %INFO%[INFO]%RESET% Installation cancelled.
         pause
         exit /b 0
@@ -72,7 +72,7 @@ if !FREE_SPACE_GB! LSS 20 (
     echo.
     
     choice /C YN /M "Continue with installation?"
-    if !ERRORLEVEL! EQU 2 (
+    if %ERRORLEVEL% EQU 2 (
         echo %INFO%[INFO]%RESET% Installation cancelled.
         pause
         exit /b 0
@@ -110,7 +110,7 @@ if %ERRORLEVEL% NEQ 0 (
     echo %INFO%[INFO]%RESET% Please restart your computer to complete Docker installation, then run this script again.
     
     choice /C YN /M "Restart computer now?"
-    if !ERRORLEVEL! EQU 1 (
+    if %ERRORLEVEL% EQU 1 (
         shutdown /r /t 10 /c "Restarting to complete Docker installation"
         echo %INFO%[INFO]%RESET% Computer will restart in 10 seconds...
     ) else (
