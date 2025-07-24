@@ -1,0 +1,11 @@
+action_endpoint:
+  url: "http://localhost:5055/webhook"
+
+tracker_store:
+  type: sql
+  dialect: "postgresql"
+  url: "postgresql://rasa_user:rasa_password@postgres:5432/rasa_db"
+  db: "rasa_db"
+  username: "rasa_user"
+  password: "rasa_password"
+  login_db: "rasa_db"

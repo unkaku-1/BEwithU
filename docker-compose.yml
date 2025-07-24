@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # MySQL Database for osTicket
+  mysql:
+    image: mysql:8.0
+    container_name: ai_helpdesk_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+
+  # PostgreSQL Database for BookStack and Rasa
+  postgres:
+    image: postgres:13
+    container_name: ai_helpdesk_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+
+  # BookStack Knowledge Base
+  bookstack:
+    image: lscr.io/linuxserver/bookstack
+    container_name: ai_helpdesk_bookstack
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - APP_URL=${BOOKSTACK_APP_URL}
+      - DB_HOST=${BOOKSTACK_DB_HOST}
+      - DB_PORT=${BOOKSTACK_DB_PORT}
+      - DB_USER=${BOOKSTACK_DB_USER}
+      - DB_PASS=${BOOKSTACK_DB_PASSWORD}
+      - DB_DATABASE=${BOOKSTACK_DB_DATABASE}
+    volumes:
+      - ./data/bookstack:/config
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+
+  # osTicket Ticketing System
+  osticket:
+    image: campbellsoftwaresolutions/osticket
+    container_name: ai_helpdesk_osticket
+    environment:
+      MYSQL_HOST: ${OSTICKET_DB_HOST}
+      MYSQL_PORT: ${OSTICKET_DB_PORT}
+      MYSQL_USER: ${OSTICKET_DB_USER}
+      MYSQL_PASSWORD: ${OSTICKET_DB_PASSWORD}
+      MYSQL_DATABASE: ${OSTICKET_DB_DATABASE}
+    volumes:
+      - ./data/osticket:/var/www/html
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+
+  # Rasa NLU/Core
+  rasa:
+    build:
+      context: ./rasa
+      dockerfile: Dockerfile
+    container_name: ai_helpdesk_rasa
+    environment:
+      - DB_HOST=${RASA_DB_HOST}
+      - DB_PORT=${RASA_DB_PORT}
+      - DB_USER=${RASA_DB_USER}
+      - DB_PASSWORD=${RASA_DB_PASSWORD}
+      - DB_DATABASE=${RASA_DB_NAME}
+    volumes:
+      - ./rasa:/app
+      - ./data/rasa:/app/models
+    ports:
+      - "5005:5005"
+    depends_on:
+      - postgres
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+    command: >
+      bash -c "rasa run --enable-api --cors '*' --debug"
+
+  # Knowledge Extractor
+  knowledge-extractor:
+    build:
+      context: ./knowledge_extractor
+      dockerfile: Dockerfile
+    container_name: ai_helpdesk_knowledge_extractor
+    environment:
+      - MYSQL_HOST=${OSTICKET_DB_HOST}
+      - MYSQL_PORT=${OSTICKET_DB_PORT}
+      - MYSQL_USER=${OSTICKET_DB_USER}
+      - MYSQL_PASSWORD=${OSTICKET_DB_PASSWORD}
+      - MYSQL_DATABASE=${OSTICKET_DB_DATABASE}
+      - POSTGRES_HOST=${RASA_DB_HOST}
+      - POSTGRES_PORT=${RASA_DB_PORT}
+      - POSTGRES_USER=${RASA_DB_USER}
+      - POSTGRES_PASSWORD=${RASA_DB_PASSWORD}
+      - POSTGRES_DATABASE=${RASA_DB_NAME}
+      - BOOKSTACK_API_TOKEN=${BOOKSTACK_API_TOKEN}
+      - BOOKSTACK_API_SECRET=${BOOKSTACK_API_SECRET}
+      - BOOKSTACK_BASE_URL=${BOOKSTACK_APP_URL}
+      - EXTRACTOR_INTERVAL=${EXTRACTOR_INTERVAL}
+    volumes:
+      - ./knowledge_extractor:/app
+    depends_on:
+      - mysql
+      - postgres
+      - bookstack
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+
+  # Frontend Web Interface
+  frontend:
+    build:
+      context: ./webchat
+      dockerfile: Dockerfile
+    container_name: ai_helpdesk_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - rasa
+    networks:
+      - ai_helpdesk_network
+    restart: unless-stopped
+
+networks:
+  ai_helpdesk_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  postgres_data:
+  bookstack_data:
+  osticket_data:
+  rasa_data:

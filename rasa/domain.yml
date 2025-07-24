@@ -1,0 +1,67 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - mood_great
+  - mood_unhappy
+  - bot_challenge
+  - ask_question
+  - technical_support
+  - account_help
+
+entities:
+  - problem_type
+  - urgency
+
+slots:
+  problem_type:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_entity
+      entity: problem_type
+  urgency:
+    type: text
+    influence_conversation: true
+    mappings:
+    - type: from_entity
+      entity: urgency
+
+responses:
+  utter_greet:
+  - text: "你好！我是AI客服助手，很高兴为您服务！"
+  
+  utter_cheer_up:
+  - text: "希望我能帮助您解决问题！"
+  
+  utter_did_that_help:
+  - text: "这样回答对您有帮助吗？"
+  
+  utter_happy:
+  - text: "很高兴能帮助到您！"
+  
+  utter_goodbye:
+  - text: "再见！如果还有其他问题，随时联系我。"
+  
+  utter_iamabot:
+  - text: "我是AI客服机器人，专门为您提供技术支持和帮助。"
+  
+  utter_ask_problem:
+  - text: "请详细描述您遇到的问题，我会尽力帮助您解决。"
+  
+  utter_technical_support:
+  - text: "我来帮您解决技术问题。请告诉我具体是什么问题？"
+  
+  utter_account_help:
+  - text: "关于账户问题，我可以为您提供帮助。请说明具体情况。"
+
+actions:
+  - action_search_knowledge
+  - action_create_ticket
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
