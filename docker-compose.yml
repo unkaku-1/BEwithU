@@ -1,0 +1,169 @@
+version: '3.8'
+
+services:
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: bewithU_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=bewithU123
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Asia/Tokyo
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n123
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
+    networks:
+      - bewithU-network
+
+  # BookStack Knowledge Base
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:latest
+    container_name: bewithU_bookstack
+    restart: unless-stopped
+    ports:
+      - "6875:80"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - APP_URL=http://localhost:6875
+      - DB_HOST=bookstack_db
+      - DB_PORT=3306
+      - DB_USER=bookstack
+      - DB_PASS=bookstack123
+      - DB_DATABASE=bookstackapp
+      - APP_LANG=ja
+    volumes:
+      - bookstack_data:/config
+    depends_on:
+      - bookstack_db
+    networks:
+      - bewithU-network
+
+  # BookStack Database
+  bookstack_db:
+    image: lscr.io/linuxserver/mariadb:latest
+    container_name: bewithU_bookstack_db
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MYSQL_ROOT_PASSWORD=rootpass123
+      - TZ=Asia/Tokyo
+      - MYSQL_DATABASE=bookstackapp
+      - MYSQL_USER=bookstack
+      - MYSQL_PASSWORD=bookstack123
+    volumes:
+      - bookstack_db_data:/config
+    networks:
+      - bewithU-network
+
+  # osTicket Ticketing System
+  osticket:
+    image: osticket/osticket:latest
+    container_name: bewithU_osticket
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - MYSQL_HOST=osticket_db
+      - MYSQL_DATABASE=osticket
+      - MYSQL_USER=osticket
+      - MYSQL_PASSWORD=osticket123
+      - MYSQL_ROOT_PASSWORD=rootpass123
+    volumes:
+      - osticket_data:/var/www/html
+    depends_on:
+      - osticket_db
+    networks:
+      - bewithU-network
+
+  # osTicket Database
+  osticket_db:
+    image: mysql:8.0
+    container_name: bewithU_osticket_db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass123
+      - MYSQL_DATABASE=osticket
+      - MYSQL_USER=osticket
+      - MYSQL_PASSWORD=osticket123
+    volumes:
+      - osticket_db_data:/var/lib/mysql
+    networks:
+      - bewithU-network
+
+  # PostgreSQL for n8n
+  postgres:
+    image: postgres:13
+    container_name: bewithU_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n123
+      - POSTGRES_DB=n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bewithU-network
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bewithU_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook
+      - KNOWLEDGE_BASE_URL=http://bookstack:80
+      - TICKET_SYSTEM_URL=http://osticket:80
+    networks:
+      - bewithU-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: bewithU_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - n8n
+      - bookstack
+      - osticket
+    networks:
+      - bewithU-network
+
+volumes:
+  n8n_data:
+  bookstack_data:
+  bookstack_db_data:
+  osticket_data:
+  osticket_db_data:
+  postgres_data:
+
+networks:
+  bewithU-network:
+    driver: bridge
+

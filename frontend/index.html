@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEwithU - Intelligent IT Support</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'Noto Sans JP', 'sans-serif'],
+                        'ja': ['Noto Sans JP', 'sans-serif'],
+                        'en': ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        'primary': '#2563eb',
+                        'primary-dark': '#1d4ed8',
+                        'secondary': '#64748b',
+                        'accent': '#f59e0b',
+                        'success': '#10b981',
+                        'warning': '#f59e0b',
+                        'error': '#ef4444',
+                        'bg-light': '#f8fafc',
+                        'bg-card': '#ffffff',
+                        'text-primary': '#1e293b',
+                        'text-secondary': '#64748b',
+                        'border-light': '#e2e8f0'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+            min-height: 400px;
+        }
+        .message-bubble {
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #64748b;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-indicator:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-bg-light font-sans">
+    
+    <!-- Header -->
+    <header class="bg-bg-card shadow-sm border-b border-border-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">BE</span>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-xl text-text-primary">BEwithU</h1>
+                        <p class="text-sm text-text-secondary" id="headerSubtitle">Intelligent IT Support</p>
+                    </div>
+                </div>
+                
+                <!-- Language Switcher -->
+                <div class="flex items-center space-x-4">
+                    <div class="flex bg-gray-100 rounded-lg p-1">
+                        <button id="langJa" class="px-3 py-1 rounded-md text-sm font-medium transition-colors bg-primary text-white">
+                            日本語
+                        </button>
+                        <button id="langZh" class="px-3 py-1 rounded-md text-sm font-medium transition-colors text-text-secondary hover:text-text-primary">
+                            中文
+                        </button>
+                    </div>
+                    
+                    <!-- Status Indicator -->
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-success rounded-full animate-pulse-slow"></div>
+                        <span class="text-sm text-text-secondary" id="statusText">オンライン</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Chat Interface -->
+            <div class="lg:col-span-2">
+                <div class="bg-bg-card rounded-2xl shadow-sm border border-border-light overflow-hidden">
+                    <!-- Chat Header -->
+                    <div class="bg-primary text-white p-4">
+                        <h2 class="font-semibold text-lg" id="chatTitle">IT サポートチャット</h2>
+                        <p class="text-blue-100 text-sm" id="chatSubtitle">何かお困りのことがあれば、お気軽にお聞かせください</p>
+                    </div>
+                    
+                    <!-- Chat Messages -->
+                    <div id="chatContainer" class="chat-container overflow-y-auto p-4 space-y-4">
+                        <!-- Welcome Message -->
+                        <div class="flex items-start space-x-3 animate-fade-in">
+                            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white text-sm font-medium">AI</span>
+                            </div>
+                            <div class="message-bubble bg-gray-100 rounded-2xl rounded-tl-md p-3">
+                                <p class="text-text-primary" id="welcomeMessage">
+                                    こんにちは！BEwithU AI アシスタントです。ITに関するご質問やお困りごとがございましたら、お気軽にお聞かせください。まず、知識ベースから最適な解決策を検索いたします。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat Input -->
+                    <div class="border-t border-border-light p-4">
+                        <div class="flex space-x-3">
+                            <input 
+                                type="text" 
+                                id="messageInput" 
+                                placeholder="メッセージを入力してください..."
+                                class="flex-1 border border-border-light rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                onkeypress="handleKeyPress(event)"
+                            >
+                            <button 
+                                id="sendButton"
+                                onclick="sendMessage()"
+                                class="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center space-x-2"
+                            >
+                                <span id="sendButtonText">送信</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                
+                <!-- Quick Actions -->
+                <div class="bg-bg-card rounded-2xl shadow-sm border border-border-light p-6">
+                    <h3 class="font-semibold text-lg text-text-primary mb-4" id="quickActionsTitle">クイックアクション</h3>
+                    <div class="space-y-3">
+                        <button class="w-full text-left p-3 rounded-xl border border-border-light hover:border-primary hover:bg-blue-50 transition-colors card-hover" onclick="quickQuestion('パスワードリセット')">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0a2 2 0 002 2m0 0a2 2 0 002-2m-2 0V5"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-text-primary font-medium" id="quickAction1">パスワードリセット</span>
+                            </div>
+                        </button>
+                        
+                        <button class="w-full text-left p-3 rounded-xl border border-border-light hover:border-primary hover:bg-blue-50 transition-colors card-hover" onclick="quickQuestion('VPN接続問題')">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-text-primary font-medium" id="quickAction2">VPN接続問題</span>
+                            </div>
+                        </button>
+                        
+                        <button class="w-full text-left p-3 rounded-xl border border-border-light hover:border-primary hover:bg-blue-50 transition-colors card-hover" onclick="quickQuestion('プリンター設定')">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-text-primary font-medium" id="quickAction3">プリンター設定</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- System Status -->
+                <div class="bg-bg-card rounded-2xl shadow-sm border border-border-light p-6">
+                    <h3 class="font-semibold text-lg text-text-primary mb-4" id="systemStatusTitle">システム状況</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-text-secondary" id="aiStatus">AI アシスタント</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-success rounded-full"></div>
+                                <span class="text-sm text-success font-medium" id="aiStatusText">正常</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-text-secondary" id="knowledgeBaseStatus">知識ベース</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-success rounded-full"></div>
+                                <span class="text-sm text-success font-medium" id="knowledgeBaseStatusText">正常</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-text-secondary" id="ticketSystemStatus">チケットシステム</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-success rounded-full"></div>
+                                <span class="text-sm text-success font-medium" id="ticketSystemStatusText">正常</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Tickets -->
+                <div class="bg-bg-card rounded-2xl shadow-sm border border-border-light p-6">
+                    <h3 class="font-semibold text-lg text-text-primary mb-4" id="recentTicketsTitle">最近のチケット</h3>
+                    <div class="space-y-3" id="recentTicketsList">
+                        <div class="text-text-secondary text-sm" id="noTicketsMessage">チケットはありません</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Language data
+        const translations = {
+            ja: {
+                headerSubtitle: "Intelligent IT Support",
+                statusText: "オンライン",
+                chatTitle: "IT サポートチャット",
+                chatSubtitle: "何かお困りのことがあれば、お気軽にお聞かせください",
+                welcomeMessage: "こんにちは！BEwithU AI アシスタントです。ITに関するご質問やお困りごとがございましたら、お気軽にお聞かせください。まず、知識ベースから最適な解決策を検索いたします。",
+                quickActionsTitle: "クイックアクション",
+                quickAction1: "パスワードリセット",
+                quickAction2: "VPN接続問題",
+                quickAction3: "プリンター設定",
+                systemStatusTitle: "システム状況",
+                aiStatus: "AI アシスタント",
+                aiStatusText: "正常",
+                knowledgeBaseStatus: "知識ベース",
+                knowledgeBaseStatusText: "正常",
+                ticketSystemStatus: "チケットシステム",
+                ticketSystemStatusText: "正常",
+                recentTicketsTitle: "最近のチケット",
+                noTicketsMessage: "チケットはありません",
+                sendButtonText: "送信",
+                inputPlaceholder: "メッセージを入力してください..."
+            },
+            zh: {
+                headerSubtitle: "智能IT支持",
+                statusText: "在线",
+                chatTitle: "IT 支持聊天",
+                chatSubtitle: "如有任何问题，请随时告诉我们",
+                welcomeMessage: "您好！我是BEwithU AI助手。如果您有任何IT相关的问题或困扰，请随时告诉我。我会首先从知识库中搜索最佳解决方案。",
+                quickActionsTitle: "快速操作",
+                quickAction1: "密码重置",
+                quickAction2: "VPN连接问题",
+                quickAction3: "打印机设置",
+                systemStatusTitle: "系统状态",
+                aiStatus: "AI 助手",
+                aiStatusText: "正常",
+                knowledgeBaseStatus: "知识库",
+                knowledgeBaseStatusText: "正常",
+                ticketSystemStatus: "工单系统",
+                ticketSystemStatusText: "正常",
+                recentTicketsTitle: "最近的工单",
+                noTicketsMessage: "没有工单",
+                sendButtonText: "发送",
+                inputPlaceholder: "请输入消息..."
+            }
+        };
+
+        let currentLanguage = 'ja';
+        let conversationHistory = [];
+
+        // Language switching
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Update UI
+            document.getElementById('langJa').className = lang === 'ja' 
+                ? 'px-3 py-1 rounded-md text-sm font-medium transition-colors bg-primary text-white'
+                : 'px-3 py-1 rounded-md text-sm font-medium transition-colors text-text-secondary hover:text-text-primary';
+            
+            document.getElementById('langZh').className = lang === 'zh' 
+                ? 'px-3 py-1 rounded-md text-sm font-medium transition-colors bg-primary text-white'
+                : 'px-3 py-1 rounded-md text-sm font-medium transition-colors text-text-secondary hover:text-text-primary';
+            
+            // Update all text elements
+            const t = translations[lang];
+            Object.keys(t).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (key === 'inputPlaceholder') {
+                        element.placeholder = t[key];
+                    } else {
+                        element.textContent = t[key];
+                    }
+                }
+            });
+        }
+
+        // Event listeners for language switching
+        document.getElementById('langJa').addEventListener('click', () => switchLanguage('ja'));
+        document.getElementById('langZh').addEventListener('click', () => switchLanguage('zh'));
+
+        // Chat functionality
+        function addMessage(content, isUser = false, isTyping = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex items-start space-x-3 animate-slide-up ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+            
+            const avatarClass = isUser ? 'bg-accent' : 'bg-primary';
+            const avatarText = isUser ? 'U' : 'AI';
+            const bubbleClass = isUser 
+                ? 'bg-primary text-white rounded-2xl rounded-tr-md' 
+                : 'bg-gray-100 rounded-2xl rounded-tl-md';
+            
+            messageDiv.innerHTML = `
+                <div class="w-8 h-8 ${avatarClass} rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-white text-sm font-medium">${avatarText}</span>
+                </div>
+                <div class="message-bubble ${bubbleClass} p-3">
+                    ${isTyping ? 
+                        '<div class="flex space-x-1"><div class="typing-indicator"></div><div class="typing-indicator"></div><div class="typing-indicator"></div></div>' :
+                        `<p class="${isUser ? 'text-white' : 'text-text-primary'}">${content}</p>`
+                    }
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        function showTypingIndicator() {
+            return addMessage('', false, true);
+        }
+
+        function removeTypingIndicator(element) {
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage(message, true);
+            conversationHistory.push({ role: 'user', content: message });
+            
+            // Clear input
+            input.value = '';
+            
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+            
+            try {
+                // Send to n8n webhook
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        language: currentLanguage,
+                        history: conversationHistory
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove typing indicator
+                removeTypingIndicator(typingIndicator);
+                
+                // Add AI response
+                addMessage(data.response || 'Sorry, I encountered an error. Please try again.');
+                conversationHistory.push({ role: 'assistant', content: data.response });
+                
+                // Handle ticket creation if suggested
+                if (data.suggestTicket) {
+                    setTimeout(() => {
+                        showTicketSuggestion(data.ticketData);
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator(typingIndicator);
+                addMessage('申し訳ございません。エラーが発生しました。もう一度お試しください。');
+            }
+        }
+
+        function showTicketSuggestion(ticketData) {
+            const suggestion = currentLanguage === 'ja' 
+                ? `知識ベースに該当する情報が見つかりませんでした。BEチームにチケットを作成しますか？\n\n作成されるチケット内容：\n${ticketData.summary}`
+                : `未在知识库中找到相关信息。是否要为BE团队创建工单？\n\n工单内容：\n${ticketData.summary}`;
+            
+            addMessage(suggestion);
+            
+            // Add action buttons
+            const chatContainer = document.getElementById('chatContainer');
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'flex space-x-3 justify-center animate-slide-up';
+            
+            const yesText = currentLanguage === 'ja' ? 'はい、チケットを作成' : '是的，创建工单';
+            const noText = currentLanguage === 'ja' ? 'いいえ、結構です' : '不，谢谢';
+            
+            actionDiv.innerHTML = `
+                <button onclick="createTicket()" class="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    ${yesText}
+                </button>
+                <button onclick="declineTicket()" class="bg-gray-300 hover:bg-gray-400 text-text-primary px-4 py-2 rounded-lg font-medium transition-colors">
+                    ${noText}
+                </button>
+            `;
+            
+            chatContainer.appendChild(actionDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function createTicket() {
+            const confirmMessage = currentLanguage === 'ja' 
+                ? 'チケットを作成しました。BEチームから連絡いたします。'
+                : '工单已创建。BE团队将与您联系。';
+            
+            addMessage(confirmMessage);
+            // Here you would actually create the ticket via API
+        }
+
+        function declineTicket() {
+            const declineMessage = currentLanguage === 'ja' 
+                ? '承知いたしました。他にご質問がございましたら、お気軽にお聞かせください。'
+                : '好的。如果您还有其他问题，请随时告诉我。';
+            
+            addMessage(declineMessage);
+        }
+
+        function quickQuestion(question) {
+            document.getElementById('messageInput').value = question;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set initial language
+            switchLanguage('ja');
+        });
+    </script>
+</body>
+</html>
+
